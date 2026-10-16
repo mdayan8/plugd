@@ -1,6 +1,6 @@
 {
   "name": "getplugd",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Get your brand recommended by AI. Audit how ChatGPT, Claude, Gemini and Perplexity see your site, get a fix plan, and plug it into your coding agent over MCP.",
   "keywords": [
     "aeo",
@@ -13,7 +13,11 @@
     "visibility"
   ],
   "homepage": "https://github.com/mdayan8/plugd#readme",
-  "repository": { "type": "git", "url": "git+https://github.com/mdayan8/plugd.git", "directory": "packages/cli" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mdayan8/plugd.git",
+    "directory": "packages/cli"
+  },
   "author": "Plugd",
   "license": "MIT",
   "type": "module",
@@ -42,6 +46,7 @@
     "@types/node": "^26.6.5",
     "tsup": "^9.0.0",
     "tsx": "^4.23.15",
-    "@plugd/audit": "workspace:*"
+    "@plugd/audit": "workspace:*",
+    "@getplugd/engines": "workspace:*"
   }
 }

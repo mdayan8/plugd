@@ -1,4 +1,4 @@
-import { hostOf, mentions, OPENROUTER_MODELS, openRouterChat, parseJson } from '@getplugd/engines'
+import { extractBrands, generateQuestions, hostOf, mentions, openRouter, OPENROUTER_MODELS, openRouterChat, parseJson, pool } from '@getplugd/engines'
 import type { AiVisibility, EngineAnswer, EngineId, Site } from './types'
 
 export { hostOf, mentions, parseJson }
@@ -24,38 +24,14 @@ export function aliasesFor(site: Site): string[] {
 }
 
 
-export async function generateQuestions(o: AiOpts, site: Site, context: string, n: number): Promise<{ questions: string[]; cost: number }> {
-  const prompt = `You help a company measure whether AI assistants recommend it.
-Company: ${site.brand} (${site.domain})
-What the site says: ${context.slice(0, 1500)}
-
-Write ${n} realistic questions a potential customer would type into ChatGPT when looking for a product or service like this, WITHOUT naming ${site.brand}. Mix: "best X for Y", "alternatives to <a well-known competitor>", "X vs Y", "how do I <job it solves>", and pricing questions. Keep each under 15 words, in the site's language.
-Return only JSON: {"questions": ["..."]}`
-  const r = await openRouterChat(o, HELPER_MODEL, prompt, false, 600)
-  const qs = parseJson<{ questions?: string[] }>(r.text, {}).questions ?? []
-  return { questions: qs.map(q => q.trim()).filter(Boolean).slice(0, n), cost: r.cost }
-}
-
-async function brandsIn(o: AiOpts, answer: string): Promise<{ brands: string[]; cost: number }> {
-  if (!answer.trim()) return { brands: [], cost: 0 }
-  const r = await openRouterChat(o, HELPER_MODEL, `List the brands, products or companies this answer recommends or names as options, in the order they appear. Return only JSON: {"brands": ["..."]}\n\nANSWER:\n${answer.slice(0, 6000)}`, false, 300)
-  return { brands: parseJson<{ brands?: string[] }>(r.text, {}).brands?.slice(0, 15) ?? [], cost: r.cost }
-}
-
-async function pool<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>): Promise<R[]> {
-  const out: R[] = new Array(items.length)
-  let next = 0
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) { const i = next++; out[i] = await fn(items[i]!) }
-  }))
-  return out
-}
+// Helper calls (questions, brand extraction) run on one cheap model through the same OpenRouter key.
+const helper = (o: AiOpts) => openRouter({ apiKey: o.apiKey, engine: 'claude', model: HELPER_MODEL, fetchImpl: o.fetchImpl })
 
 export async function checkVisibility(o: AiOpts, site: Site, context: string): Promise<AiVisibility> {
   const engines = o.engines ?? (Object.keys(ENGINES) as EngineId[])
   let helperCost = 0
   let questions = o.customQuestions ?? []
-  if (!questions.length) { const g = await generateQuestions(o, site, context, o.questions ?? 10); questions = g.questions; helperCost += g.cost }
+  if (!questions.length) { const g = await generateQuestions(helper(o), site, context, o.questions ?? 10); questions = g.questions; helperCost += g.costUsd }
   if (!questions.length) throw new Error('Could not generate buyer questions for this site. Pass your own with --question.')
   const aliases = aliasesFor(site)
   const jobs = questions.flatMap(q => engines.map(e => ({ q, e })))
@@ -65,8 +41,8 @@ export async function checkVisibility(o: AiOpts, site: Site, context: string): P
     const model = o.models?.[e] ?? ENGINES[e].model
     try {
       const r = await openRouterChat(o, model, q, true, 900)
-      const b = await brandsIn(o, r.text)
-      helperCost += b.cost
+      const b = await extractBrands(helper(o), r.text)
+      helperCost += b.costUsd
       const mentioned = mentions(r.text, aliases)
       const idx = b.brands.findIndex(x => mentions(x, aliases) || aliases.some(a => x.toLowerCase().includes(a)))
       return { engine: e, model, question: q, text: r.text, citations: r.citations, mentioned, cited: r.citations.some(c => hostOf(c.url).endsWith(site.domain)), position: idx >= 0 ? idx + 1 : undefined, brands: b.brands, costUsd: r.cost }

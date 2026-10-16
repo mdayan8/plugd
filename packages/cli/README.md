@@ -59,6 +59,27 @@ Options:
 
 API answers can differ from what people see in the ChatGPT app, and answers vary run to run. Treat one audit as a snapshot. [Plugd Cloud](https://plugd.getplugd.workers.dev) tracks the real interfaces over time.
 
+## Track it over time, free, with your own key
+
+One audit is a snapshot. `track` asks the same buyer questions every time you run it and keeps the answers, so you can see whether you're showing up more often.
+
+```bash
+export GEMINI_API_KEY=...                 # https://aistudio.google.com/apikey
+npx getplugd track yourapp.com            # first run writes 10 buyer questions and saves them
+npx getplugd report                       # how often each engine names and cites you, run by run
+npx getplugd report --md report.md
+```
+
+- **Where it's kept:** `.plugd/plugd.json` (your site and questions) and `.plugd/history.jsonl` (one line per answer). Commit the folder to keep the trend. The questions stay fixed so runs compare; edit `plugd.json` to change them.
+- **Which engines:** Gemini with Google Search if `GEMINI_API_KEY` is set. Otherwise ChatGPT, Claude, Gemini and Perplexity through `OPENROUTER_API_KEY`. Pick with `--engines gemini,chatgpt`.
+- **What it costs:** it shows a worst-case estimate and asks first. `--max-cost 0.50` stops starting checks once $0.50 is spent.
+  - Gemini: Google Search grounding needs billing turned on in Google Cloud, and the first 5,000 searches a month are free. After that it's $14 per 1,000 searches, plus a fraction of a cent of tokens per answer.
+  - OpenRouter: about $0.01 per answer.
+  - Bills are between you and the provider. Your keys go straight to them; Plugd never sees them.
+- **Reading the numbers:** every rate comes with a 95% range, and a run is only marked ↑ or ↓ when the ranges don't overlap. With 10 questions, a swing from 2 to 3 mentions is noise. Positions inside answers aren't reported, because they reshuffle almost every run.
+
+Run it weekly from cron, or let [Plugd Cloud](https://plugd.getplugd.workers.dev) run it for you with no keys and a benchmark of your market.
+
 ## Use it from your coding agent (MCP)
 
 `npx getplugd mcp` runs a local MCP server with two tools:

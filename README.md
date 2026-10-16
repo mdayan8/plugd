@@ -3,6 +3,7 @@
 **Get your site found, cited and recommended by AI.** Open-source tools to check how ChatGPT, Claude, Gemini and Perplexity see your site, fix what's in the way, and let your coding agent do the work.
 
 - **CLI:** `npx getplugd audit yourapp.com` checks AI crawler access, readability and structured data, then asks the AI engines real buyer questions (with your own OpenRouter key).
+- **Tracking:** `npx getplugd track yourapp.com` asks the same buyer questions each run and keeps the answers in `.plugd/`; `npx getplugd report` shows the trend with honest error ranges. Free with your own Gemini or OpenRouter key.
 - **MCP server:** `npx getplugd mcp` gives Claude Code, Codex, Cursor and OpenCode two tools, `audit_site` and `get_fix_plan`.
 - **Skills:** AEO, GEO and SEO playbooks your agent can follow, built from vendor docs and published research, with sources.
 - **Prompts:** the system prompts behind the audit, readable and reusable.

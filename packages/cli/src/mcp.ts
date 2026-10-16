@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { audit, estimateAiCost, normalizeUrl, type AuditReport } from '@plugd/audit'
 import { planMarkdown, reportMarkdown } from './markdown'
 
-const VERSION = '0.2.0'
+const VERSION = '0.3.0'
 
 // Last report per site, so get_fix_plan doesn't re-crawl or re-spend AI credits.
 const cache = new Map<string, AuditReport>()

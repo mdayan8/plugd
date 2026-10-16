@@ -32,7 +32,8 @@ The CLI's version is hard-coded in three places that must match: `packages/cli/p
   - `findings.ts` turns all of that into findings and a score.
   - `plan.ts` turns findings into ranked fixes with ready-to-paste artifacts. `recommendedRobots` only unblocks blocked search and user bots and keeps every other rule.
   - Every outbound fetch goes through `fetcher.ts`, which carries the SSRF guard (`assertPublicUrl`) and a browser-like user agent.
-- **`packages/cli`** is the npm package `getplugd` (binary `plugd`): `audit`, `plan` and `mcp`. `mcp` is a stdio MCP server with the tools `audit_site` and `get_fix_plan`. tsup bundles `@plugd/audit` into one file (`noExternal`), so `@plugd/audit` is only a devDependency.
+- **`packages/cli`** is the npm package `getplugd` (binary `plugd`): `audit`, `plan`, `track`, `report` and `mcp`.
+  - `track.ts`/`report.ts` keep local history in `.plugd/plugd.json` (site + frozen questions) and `.plugd/history.jsonl` (one `TrackRecord` per answer, appended as each lands). `--max-cost` reserves each engine's worst case (`PER_QUESTION`) before a check and settles to the actual cost after. `report` only marks ↑/↓ when Wilson 95% intervals don't overlap. `mcp` is a stdio MCP server with the tools `audit_site` and `get_fix_plan`. tsup bundles `@plugd/audit` into one file (`noExternal`), so `@plugd/audit` is only a devDependency.
 - **`skills/*/SKILL.md`** are Agent Skills; **`prompts/`** holds system prompts. `buyer-questions.md` and `brand-extractor.md` mirror the prompts in `ai.ts`, so keep them in sync.
 - **`research/evidence-2026-10.md`** is the sourced evidence brief that every skill and audit rule is built on.
 - **`.claude-plugin/`** plus **`.mcp.json`** make the repo installable as a Claude Code plugin (`/plugin marketplace add mdayan8/plugd`).

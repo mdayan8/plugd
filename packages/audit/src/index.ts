@@ -36,6 +36,19 @@ function brandFrom(home: PageInfo | undefined, domain: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
+/** One homepage fetch: the site's brand, domain and a short description, for writing buyer questions. */
+export async function readSite(input: string, o: { allowLocal?: boolean; brand?: string } = {}): Promise<{ site: Site; context: string }> {
+  const r = await get(`${normalizeUrl(input)}/`, { allowLocal: o.allowLocal })
+  if (r.error) throw new Error(`Couldn't reach ${input}: ${r.error}`)
+  const url = new URL(r.url).origin
+  const domain = new URL(url).hostname.replace(/^www\./, '')
+  const home = analyzePage(r.url, r.status, r.text)
+  return {
+    site: { url, domain, brand: o.brand ?? brandFrom(home, domain), description: home.description },
+    context: [home.title, home.description, home.h1].filter(Boolean).join(' · '),
+  }
+}
+
 export function estimateAiCost(questions: number, engines = Object.keys(ENGINES) as (keyof typeof EST_COST)[]): number {
   return questions * engines.reduce((s, e) => s + EST_COST[e], 0) + 0.01
 }
