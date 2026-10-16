@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/getplugd"><img src="https://img.shields.io/npm/v/getplugd?color=2346F0&label=npm" alt="npm version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2346F0" alt="MIT license"></a>
+  <a href="LICENSING.md"><img src="https://img.shields.io/badge/license-AGPL--3.0-2346F0" alt="AGPL-3.0 license"></a>
 </p>
 
 <h3 align="center">Open-source AI visibility tools: see what ChatGPT, Claude, Gemini and Perplexity say about your brand, then fix it.</h3>
@@ -199,7 +199,7 @@ Keys are read from your environment (or a GitHub secret) and sent only to the pr
 
 ## Contributing
 
-Issues and pull requests are welcome. For skills and research, every claim needs a source link. Developer setup:
+Issues and pull requests are welcome. For skills and research, every claim needs a source link. Contributions are accepted under the license of the part they change ([LICENSING.md](LICENSING.md)). Developer setup:
 
 ```bash
 pnpm install && pnpm build && pnpm test
@@ -209,4 +209,4 @@ Repo layout, architecture and conventions: [CLAUDE.md](CLAUDE.md) and [docs/refe
 
 ## License
 
-[MIT](LICENSE). Use it, fork it, ship it.
+The code (CLI, MCP server, engines, GitHub Action) is [AGPL-3.0](LICENSE): free to use for your own sites and in your CI with no strings attached. If you run a modified version as a service for others, you share your changes. The skills, prompts and research are [MIT](skills/LICENSE): copy them anywhere. Details: [LICENSING.md](LICENSING.md).

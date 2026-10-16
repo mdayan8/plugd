@@ -5,6 +5,6 @@
   "author": { "name": "Plugd" },
   "homepage": "https://github.com/mdayan8/plugd",
   "repository": "https://github.com/mdayan8/plugd",
-  "license": "MIT",
+  "license": "AGPL-3.0-only AND MIT",
   "keywords": ["aeo", "geo", "seo", "ai-search", "mcp"]
 }

@@ -46,4 +46,4 @@ The CLI's version is hard-coded in three places that must match: `packages/cli/p
 - **Evidence first.** Every factual claim in a skill or prompt needs a source link and should match `research/evidence-2026-10.md`. Bump the skill's "Last verified" date when you re-check a claim.
 - **Don't add debunked advice.** Don't present llms.txt, schema/FAQ markup, "chunking" or fixed passage lengths as citation levers. Don't report a position inside AI answers. Report mention and citation rates with the number of runs.
 - **Keep both copies in sync.** `packages/audit` and `packages/cli` are duplicated in the private app repo, so mirror changes there until it depends on this repo.
-- **License.** Everything here is MIT.
+- **License.** Code (`packages/`, `action.yml`, `examples/`) is AGPL-3.0-only; `skills/`, `prompts/` and `research/` are MIT, each with its own LICENSE file. See `LICENSING.md`. New packages get the AGPL LICENSE copy and `"license": "AGPL-3.0-only"`.

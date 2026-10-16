@@ -140,4 +140,4 @@ Then ask: *"Audit our site for AI visibility and apply the fix plan in this repo
 
 ## License
 
-MIT
+AGPL-3.0. Using the CLI, Action and MCP server for your own sites has no obligations; running a modified version as a service for others means sharing your changes. Versions up to 0.1.0 were MIT. Details: [LICENSING.md](https://github.com/mdayan8/plugd/blob/main/LICENSING.md).
