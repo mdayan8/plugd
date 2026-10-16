@@ -23,6 +23,7 @@ The CLI's version is hard-coded in three places that must match: `packages/cli/p
 
 ## Architecture
 
+- **`packages/engines`** (`@getplugd/engines`): one provider per AI engine behind the `Engine` interface (`ask` with web search, `complete` without). `gemini.ts` uses the Gemini Interactions API with the `google_search` tool, and its `searchCalls` count is what Google bills against the 5,000 free searches a month. `openrouter.ts` covers ChatGPT, Claude and Perplexity with the user's OpenRouter key. `brands.ts` has the deterministic `mentions` and `cites` checks plus `extractBrands`. It uses only `fetch`, so it runs in the CLI, a GitHub Action and the private Worker. Model prices live in `gemini.ts`; update them when Google's pricing page changes.
 - **`packages/audit`** is a library; `audit()` in `src/index.ts` runs the whole audit:
   - robots.txt rules per AI bot. `bots.ts` tags each bot as `search`, `user` or `training`, and the score only penalises blocked search and user bots.
   - A CDN/WAF probe that fetches with AI user agents.

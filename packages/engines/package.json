@@ -1,0 +1,17 @@
+{
+  "name": "@getplugd/engines",
+  "version": "0.1.0",
+  "description": "Ask AI answer engines (Gemini with Google Search, and ChatGPT, Claude, Perplexity via OpenRouter) a question and get the answer, cited sources and cost. Plus brand extraction for AI visibility tracking.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5"
+  }
+}

@@ -1,11 +1,9 @@
+import { hostOf, mentions, OPENROUTER_MODELS, openRouterChat, parseJson } from '@getplugd/engines'
 import type { AiVisibility, EngineAnswer, EngineId, Site } from './types'
 
-export const ENGINES: Record<EngineId, { label: string; model: string }> = {
-  chatgpt: { label: 'ChatGPT', model: 'openai/gpt-5.4-mini' },
-  claude: { label: 'Claude', model: 'anthropic/claude-haiku-5.5' },
-  gemini: { label: 'Gemini', model: 'google/gemini-3.5-flash-lite' },
-  perplexity: { label: 'Perplexity', model: 'perplexity/sonar' },
-}
+export { hostOf, mentions, parseJson }
+
+export const ENGINES = OPENROUTER_MODELS
 export const HELPER_MODEL = 'anthropic/claude-haiku-5.5'
 // Rough per-question cost (search fee + typical tokens), shown before spending.
 export const EST_COST: Record<EngineId, number> = { chatgpt: 0.014, claude: 0.012, gemini: 0.017, perplexity: 0.007 }
@@ -20,42 +18,11 @@ export interface AiOpts {
   onProgress?: (done: number, total: number) => void
 }
 
-interface ChatResult { text: string; citations: { url: string; title?: string }[]; cost: number }
-
-async function chat(o: AiOpts, model: string, prompt: string, web: boolean, maxTokens: number): Promise<ChatResult> {
-  const res = await (o.fetchImpl ?? fetch)('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${o.apiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://github.com/mdayan8/plugd', 'X-Title': 'Plugd audit' },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: maxTokens,
-      usage: { include: true },
-      ...(web ? { plugins: [{ id: 'web', max_results: 5 }] } : {}),
-    }),
-  })
-  const body = await res.json().catch(() => ({})) as any
-  if (!res.ok) throw new Error(body?.error?.message ?? `OpenRouter ${res.status}`)
-  const msg = body.choices?.[0]?.message ?? {}
-  const text = typeof msg.content === 'string' ? msg.content : Array.isArray(msg.content) ? msg.content.map((c: any) => c.text ?? '').join('') : ''
-  const citations = (msg.annotations ?? []).filter((a: any) => a.type === 'url_citation' && a.url_citation?.url).map((a: any) => ({ url: a.url_citation.url, title: a.url_citation.title }))
-  return { text, citations, cost: Number(body.usage?.cost ?? 0) }
-}
-
-// Models sometimes wrap JSON in prose or code fences.
-export function parseJson<T>(text: string, fallback: T): T {
-  const m = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
-  try { return m ? JSON.parse(m[0]) : fallback } catch { return fallback }
-}
-
 export function aliasesFor(site: Site): string[] {
   const label = site.domain.split('.')[0]!
   return [...new Set([site.brand, site.domain, label.length > 3 ? label : ''].filter(Boolean).map(s => s.toLowerCase()))]
 }
 
-const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-export const mentions = (text: string, aliases: string[]) => aliases.some(a => new RegExp(`(^|[^a-z0-9])${esc(a)}([^a-z0-9]|$)`, 'i').test(text))
-export const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, '') } catch { return '' } }
 
 export async function generateQuestions(o: AiOpts, site: Site, context: string, n: number): Promise<{ questions: string[]; cost: number }> {
   const prompt = `You help a company measure whether AI assistants recommend it.
@@ -64,14 +31,14 @@ What the site says: ${context.slice(0, 1500)}
 
 Write ${n} realistic questions a potential customer would type into ChatGPT when looking for a product or service like this, WITHOUT naming ${site.brand}. Mix: "best X for Y", "alternatives to <a well-known competitor>", "X vs Y", "how do I <job it solves>", and pricing questions. Keep each under 15 words, in the site's language.
 Return only JSON: {"questions": ["..."]}`
-  const r = await chat(o, HELPER_MODEL, prompt, false, 600)
+  const r = await openRouterChat(o, HELPER_MODEL, prompt, false, 600)
   const qs = parseJson<{ questions?: string[] }>(r.text, {}).questions ?? []
   return { questions: qs.map(q => q.trim()).filter(Boolean).slice(0, n), cost: r.cost }
 }
 
 async function brandsIn(o: AiOpts, answer: string): Promise<{ brands: string[]; cost: number }> {
   if (!answer.trim()) return { brands: [], cost: 0 }
-  const r = await chat(o, HELPER_MODEL, `List the brands, products or companies this answer recommends or names as options, in the order they appear. Return only JSON: {"brands": ["..."]}\n\nANSWER:\n${answer.slice(0, 6000)}`, false, 300)
+  const r = await openRouterChat(o, HELPER_MODEL, `List the brands, products or companies this answer recommends or names as options, in the order they appear. Return only JSON: {"brands": ["..."]}\n\nANSWER:\n${answer.slice(0, 6000)}`, false, 300)
   return { brands: parseJson<{ brands?: string[] }>(r.text, {}).brands?.slice(0, 15) ?? [], cost: r.cost }
 }
 
@@ -97,7 +64,7 @@ export async function checkVisibility(o: AiOpts, site: Site, context: string): P
   const answers = await pool(jobs, 6, async ({ q, e }): Promise<EngineAnswer> => {
     const model = o.models?.[e] ?? ENGINES[e].model
     try {
-      const r = await chat(o, model, q, true, 900)
+      const r = await openRouterChat(o, model, q, true, 900)
       const b = await brandsIn(o, r.text)
       helperCost += b.cost
       const mentioned = mentions(r.text, aliases)

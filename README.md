@@ -54,6 +54,7 @@ Every claim in a skill links to its source. Where the evidence is weak or contes
 ## Repo layout
 
 ```
+packages/engines/ engine providers: Gemini (Google Search) and ChatGPT/Claude/Perplexity via OpenRouter, plus brand extraction
 packages/audit/   audit engine (TypeScript library)
 packages/cli/     `getplugd` CLI + stdio MCP server, published to npm
 skills/           Agent Skills (SKILL.md) for Claude Code, Codex, Cursor

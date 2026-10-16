@@ -7,5 +7,5 @@ export default defineConfig({
   platform: 'node',
   target: 'node20',
   clean: true,
-  noExternal: ['@plugd/audit'],
+  noExternal: ['@plugd/audit', '@getplugd/engines'],
 })
