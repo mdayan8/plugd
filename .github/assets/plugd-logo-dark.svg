@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="80" viewBox="0 0 300 80" role="img" aria-label="Plugd"><title>Plugd</title>
+<svg x="0" y="4" width="72" height="72" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="pg-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5279FF"/>
+      <stop offset="1" stop-color="#2141EE"/>
+    </linearGradient>
+    <linearGradient id="pg-gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".35"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#pg-bg)"/>
+  <path d="M0 18A18 18 0 0 1 18 0h28a18 18 0 0 1 18 18v6C46 30 18 30 0 24z" fill="url(#pg-gloss)"/>
+  <rect x="12" y="14" width="40" height="27" rx="13.5" fill="#fff"/>
+  <rect x="22.5" y="37" width="5.5" height="13" rx="2.75" fill="#fff"/>
+  <rect x="36" y="37" width="5.5" height="13" rx="2.75" fill="#fff"/>
+  <circle cx="25.5" cy="27.5" r="3.2" fill="#2346F0"/>
+  <circle cx="38.5" cy="27.5" r="3.2" fill="#2346F0"/>
+</svg>
+<text x="88" y="56" font-family="Inter, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="50" font-weight="650" letter-spacing="-2" fill="#F6F5F1">plugd</text>
+</svg>

@@ -41,6 +41,8 @@ The CLI's version is hard-coded in three places that must match: `packages/cli/p
 
 ## Rules
 
+- **Docs follow Diátaxis** (`docs/`): tutorials teach, how-to guides solve one problem, reference mirrors the code exactly, and explanation gives the why. When you change a flag, input, tool parameter, finding or score weight, update `docs/reference/` in the same change. README and docs images live in `.github/assets/` (logos are 64px white tiles so they stay visible in dark mode; `demo-audit.svg` is real CLI output).
+
 - **Evidence first.** Every factual claim in a skill or prompt needs a source link and should match `research/evidence-2026-10.md`. Bump the skill's "Last verified" date when you re-check a claim.
 - **Don't add debunked advice.** Don't present llms.txt, schema/FAQ markup, "chunking" or fixed passage lengths as citation levers. Don't report a position inside AI answers. Report mention and citation rates with the number of runs.
 - **Keep both copies in sync.** `packages/audit` and `packages/cli` are duplicated in the private app repo, so mirror changes there until it depends on this repo.

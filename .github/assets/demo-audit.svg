@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="561" viewBox="0 0 860 561" role="img" aria-label="Terminal output of npx getplugd audit example.com: score 57/100, all AI crawlers allowed, findings and a ranked fix plan">
+<title>npx getplugd audit example.com</title>
+<rect width="860" height="561" rx="14" fill="#15140F"/>
+<rect width="860" height="36" rx="14" fill="#211F19"/><rect y="22" width="860" height="14" fill="#211F19"/>
+<circle cx="22" cy="18" r="6" fill="#FF5F57"/><circle cx="42" cy="18" r="6" fill="#FEBC2E"/><circle cx="62" cy="18" r="6" fill="#28C840"/>
+<text x="430" y="23" text-anchor="middle" fill="#8A877E" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12">plugd audit</text>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="13">
+<text x="22" y="72" fill="#9FB4FF" font-weight="700" xml:space="preserve">$ npx getplugd audit example.com</text>
+<text x="22" y="91" fill="#C9C6BC" xml:space="preserve"></text>
+<text x="22" y="110" fill="#F6F5F1" font-weight="700" xml:space="preserve">  Example Domain example.com</text>
+<text x="22" y="129" fill="#F2C14E" font-weight="700" xml:space="preserve">  57/100  crawler access 40/40 · content 0/30 · AI visibility not measured</text>
+<text x="22" y="148" fill="#C9C6BC" xml:space="preserve"></text>
+<text x="22" y="167" fill="#F6F5F1" font-weight="700" xml:space="preserve">  AI crawlers</text>
+<text x="22" y="186" fill="#C9C6BC" xml:space="preserve">  search   <tspan fill="#5EDB98">✓</tspan> OAI-SearchBot  <tspan fill="#5EDB98">✓</tspan> Claude-SearchBot  <tspan fill="#5EDB98">✓</tspan> PerplexityBot  <tspan fill="#5EDB98">✓</tspan> Googlebot  <tspan fill="#5EDB98">✓</tspan> Bingbot  …</text>
+<text x="22" y="205" fill="#C9C6BC" xml:space="preserve">  user     <tspan fill="#5EDB98">✓</tspan> ChatGPT-User  <tspan fill="#5EDB98">✓</tspan> Claude-User  <tspan fill="#5EDB98">✓</tspan> Perplexity-User  <tspan fill="#5EDB98">✓</tspan> DuckAssistBot  <tspan fill="#5EDB98">✓</tspan> MistralAI-User</text>
+<text x="22" y="224" fill="#C9C6BC" xml:space="preserve">  training <tspan fill="#5EDB98">✓</tspan> GPTBot  <tspan fill="#5EDB98">✓</tspan> ClaudeBot  <tspan fill="#5EDB98">✓</tspan> Google-Extended  <tspan fill="#5EDB98">✓</tspan> Applebot-Extended  …</text>
+<text x="22" y="243" fill="#C9C6BC" xml:space="preserve"></text>
+<text x="22" y="262" fill="#F6F5F1" font-weight="700" xml:space="preserve">  Findings</text>
+<text x="22" y="281" fill="#F2C14E" xml:space="preserve">  ● Homepage has no meta description</text>
+<text x="22" y="300" fill="#F2C14E" xml:space="preserve">  ● Homepage has very little readable text (25 words)</text>
+<text x="22" y="319" fill="#F2C14E" xml:space="preserve">  ● No Organization structured data</text>
+<text x="22" y="338" fill="#8A877E" xml:space="preserve">  ○ No robots.txt found</text>
+<text x="22" y="357" fill="#8A877E" xml:space="preserve">  ○ No Product / SoftwareApplication structured data</text>
+<text x="22" y="376" fill="#8A877E" xml:space="preserve">  ○ No sitemap found</text>
+<text x="22" y="395" fill="#8A877E" xml:space="preserve">  · No llms.txt</text>
+<text x="22" y="414" fill="#C9C6BC" xml:space="preserve"></text>
+<text x="22" y="433" fill="#F6F5F1" font-weight="700" xml:space="preserve">  Fix plan  (4 fixes, highest impact first)</text>
+<text x="22" y="452" fill="#C9C6BC" xml:space="preserve">   1. Write a homepage meta description · medium impact · minutes</text>
+<text x="22" y="471" fill="#C9C6BC" xml:space="preserve">   2. Put the “what, who for, why” in plain HTML on the homepage · medium impact · hours</text>
+<text x="22" y="490" fill="#C9C6BC" xml:space="preserve">   3. Add Organization + product structured data · low impact · minutes</text>
+<text x="22" y="509" fill="#C9C6BC" xml:space="preserve">   4. Optional: add /llms.txt · low impact · minutes</text>
+<text x="22" y="528" fill="#C9C6BC" xml:space="preserve"></text>
+</g></svg>
