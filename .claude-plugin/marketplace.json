@@ -1,0 +1,14 @@
+{
+  "name": "plugd",
+  "description": "AI visibility audit, fix plan over MCP, and sourced AEO/GEO/SEO skills from Plugd.",
+  "owner": {
+    "name": "Plugd"
+  },
+  "plugins": [
+    {
+      "name": "plugd",
+      "source": "./",
+      "description": "AI visibility audit, fix plan over MCP, and AEO/GEO/SEO skills."
+    }
+  ]
+}
