@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { wilson, type Engine } from '@getplugd/engines'
-import { change, latest, reportLines, reportMarkdown, summarize } from './report'
-import { loadHistory, PER_QUESTION, saveConfig, track, type TrackConfig } from './track'
+import { alertMarkdown, change, drops, latest, reportLines, reportMarkdown, summarize } from './report'
+import { enginesFromEnv, loadHistory, PER_QUESTION, saveConfig, track, type TrackConfig } from './track'
 
 const cfg: TrackConfig = { site: 'https://acme.com', domain: 'acme.com', brand: 'Acme', aliases: ['acme', 'acme.com'], questions: ['best analytics tool', 'cookieless analytics', 'alternatives to big analytics'], createdAt: '2026-10-01T00:00:00.000Z' }
 
@@ -98,5 +98,34 @@ describe('wilson', () => {
     expect(w.low).toBeCloseTo(0.181, 3)
     expect(w.high).toBeCloseTo(0.567, 3)
     expect(wilson(0, 0)).toEqual({ rate: 0, low: 0, high: 0 })
+  })
+})
+
+describe('alerts', () => {
+  const ten = { ...cfg, questions: Array.from({ length: 10 }, (_, i) => `question ${i}`) }
+  it('fires only when the latest run is clearly worse', async () => {
+    const dir = tmp()
+    await track({ dir, config: ten, engines: [fakeEngine(/./)], now: () => new Date('2026-10-05T00:00:00Z') })
+    expect(alertMarkdown(ten, loadHistory(dir))).toBeNull() // one run: nothing to compare
+    await track({ dir, config: ten, engines: [fakeEngine(/[0-8]$/)], now: () => new Date('2026-10-12T00:00:00Z') })
+    expect(drops(loadHistory(dir))).toEqual([]) // 10/10 → 9/10 is noise
+    await track({ dir, config: ten, engines: [fakeEngine(/^$/)], now: () => new Date('2026-10-19T00:00:00Z') })
+    const md = alertMarkdown(ten, loadHistory(dir))!
+    expect(md).toContain('**Gemini:** 90%')
+    expect(md).toContain('→ 0%')
+    expect(md).toContain('Named instead: Tallyhq')
+  })
+})
+
+describe('enginesFromEnv', () => {
+  it('uses Gemini direct with a Gemini key, OpenRouter for the rest', () => {
+    expect(enginesFromEnv(undefined, { GEMINI_API_KEY: 'g' }).map(e => [e.id, e.model])).toEqual([['gemini', 'gemini-3.5-flash-lite']])
+    expect(enginesFromEnv(undefined, { OPENROUTER_API_KEY: 'o' }).map(e => e.id)).toEqual(['chatgpt', 'claude', 'gemini', 'perplexity'])
+    expect(enginesFromEnv('gemini,chatgpt', { GEMINI_API_KEY: 'g', OPENROUTER_API_KEY: 'o' }).map(e => e.model)).toEqual(['gemini-3.5-flash-lite', 'openai/gpt-5.4-mini'])
+  })
+  it('explains what key is missing', () => {
+    expect(() => enginesFromEnv(undefined, {})).toThrow('needs an API key')
+    expect(() => enginesFromEnv('chatgpt', { GEMINI_API_KEY: 'g' })).toThrow('ChatGPT needs OPENROUTER_API_KEY')
+    expect(() => enginesFromEnv('bard', { GEMINI_API_KEY: 'g' })).toThrow('Unknown engine "bard"')
   })
 })

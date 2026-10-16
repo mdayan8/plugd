@@ -1,5 +1,16 @@
 {
   "mcpServers": {
-    "plugd": { "command": "npx", "args": ["-y", "getplugd", "mcp"], "env": { "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY:-}" } }
+    "plugd": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "getplugd",
+        "mcp"
+      ],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY:-}",
+        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY:-}"
+      }
+    }
   }
 }

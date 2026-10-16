@@ -97,3 +97,27 @@ export function reportMarkdown(cfg: TrackConfig, records: TrackRecord[]): string
   if (l.missed.length) md.push("## Questions where you weren't named", '', ...l.missed.map(q => `- ${q}`), '')
   return md.join('\n')
 }
+
+/** Engines whose latest run is clearly worse than the run before (non-overlapping 95% intervals). */
+export function drops(records: TrackRecord[]): { engine: EngineId; prev: RunRow; cur: RunRow }[] {
+  const rows = summarize(records)
+  return [...new Set(rows.map(r => r.engine))].flatMap(engine => {
+    const mine = rows.filter(r => r.engine === engine && r.n > 0)
+    const [prev, cur] = mine.slice(-2)
+    return prev && cur && change(prev, cur) === 'down' ? [{ engine, prev, cur }] : []
+  })
+}
+
+/** Markdown for a GitHub issue when visibility dropped, or null when nothing clearly changed. */
+export function alertMarkdown(cfg: TrackConfig, records: TrackRecord[]): string | null {
+  const d = drops(records)
+  if (!d.length) return null
+  const l = latest(cfg, records)
+  return [
+    `AI engines named **${cfg.brand}** clearly less often in the latest run (${day(d[0]!.cur.runId)}):`, '',
+    ...d.map(x => `- **${ENGINES[x.engine].label}:** ${pct(x.prev.mention.rate)} (${interval(x.prev.mention)}, n=${x.prev.n}) → ${pct(x.cur.mention.rate)} (${interval(x.cur.mention)}, n=${x.cur.n})`), '',
+    l.competitors.length ? `Named instead: ${l.competitors.slice(0, 5).map(x => x.name).join(', ')}.` : '',
+    l.sources.length ? `Sources the engines used: ${l.sources.slice(0, 5).map(x => x.name).join(', ')}.` : '', '',
+    'Ranges are 95% intervals; this alert only fires when they don\'t overlap. Run `npx getplugd report` for the full history, and `npx getplugd plan ' + cfg.domain + '` for fixes.',
+  ].join('\n').replace(/\n{3,}/g, '\n\n')
+}

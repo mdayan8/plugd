@@ -3,6 +3,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import { audit, estimateAiCost, normalizeUrl, type AuditReport } from '@plugd/audit'
 import { planMarkdown, reportMarkdown } from './markdown'
+import { alertMarkdown, reportLines, reportMarkdown as historyMarkdown } from './report'
+import { enginesFromEnv, ensureConfig, estimateTrack, loadConfig, loadHistory, track } from './track'
 
 const VERSION = '0.3.0'
 
@@ -44,6 +46,44 @@ export async function runMcp(o: { allowLocal: boolean }): Promise<void> {
       cache.set(report.site.url, report)
     }
     return { content: [{ type: 'text', text: planMarkdown(report) }] }
+  })
+
+  server.registerTool('track_questions', {
+    title: 'Track AI answers for buyer questions',
+    description: `Asks AI engines the site's saved buyer questions with live web search, scores whether each answer names and cites the brand, and appends the answers to local history (.plugd/ in the current folder by default). The first call for a site reads its homepage and writes the questions (or uses the ones you pass); later calls reuse them so runs compare. SPENDS THE USER'S OWN API CREDITS (Gemini with GEMINI_API_KEY, or OpenRouter): roughly $0.01–0.03 per question per engine, capped by max_cost. Confirm with the user before calling. Returns the trend so far.`,
+    inputSchema: {
+      url: z.string().optional().describe('Site to track, e.g. "acme.com". Needed on the first call for a folder.'),
+      engines: z.array(z.enum(['gemini', 'chatgpt', 'claude', 'perplexity'])).optional().describe('Default: gemini when GEMINI_API_KEY is set, otherwise all four through OpenRouter.'),
+      max_cost: z.number().positive().max(5).optional().describe('Stop starting new checks once this many US dollars are spent. Default 0.50.'),
+      questions: z.array(z.string()).max(30).optional().describe('Your own buyer questions; only used on the first call for a folder.'),
+      dir: z.string().optional().describe('History folder. Default ".plugd".'),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  }, async ({ url, engines: ids, max_cost, questions, dir = '.plugd' }) => {
+    const engines = enginesFromEnv(ids)
+    const { config } = await ensureConfig({ dir, target: url, engine: engines[0]!, questions, allowLocal: o.allowLocal, log: m => console.error(`[plugd] ${m}`) })
+    const maxCost = max_cost ?? 0.5
+    const res = await track({ dir, config, engines, maxCost })
+    const failed = res.records.filter(r => r.error)
+    const notes = [
+      `This run: ${res.records.length - failed.length} answers, $${res.spentUsd.toFixed(3)} at list prices (estimate up to $${estimateTrack(engines.map(e => e.id), config.questions.length).toFixed(2)}, cap $${maxCost.toFixed(2)}).`,
+      res.skipped ? `${res.skipped} checks skipped at the cost cap.` : '',
+      failed.length ? `${failed.length} checks failed: ${failed[0]!.error}` : '',
+    ].filter(Boolean)
+    return { content: [{ type: 'text', text: [...reportLines(config, loadHistory(dir)), '', ...notes].join('\n') }] }
+  })
+
+  server.registerTool('get_history', {
+    title: 'Get AI visibility history',
+    description: 'Reads the local tracking history (from track_questions or `npx getplugd track`) and returns, per run and engine, how often AI named and cited the brand with 95% ranges, who was named instead, which sources the engines used, the questions where the brand was missing, and an alert if a run clearly dropped. Free: makes no API calls.',
+    inputSchema: { dir: z.string().optional().describe('History folder. Default ".plugd".') },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async ({ dir = '.plugd' }) => {
+    const config = loadConfig(dir)
+    if (!config) return { content: [{ type: 'text', text: `Nothing tracked in ${dir} yet. Call track_questions with a url first.` }] }
+    const records = loadHistory(dir)
+    const alert = alertMarkdown(config, records)
+    return { content: [{ type: 'text', text: historyMarkdown(config, records) + (alert ? `\n## Alert\n\n${alert}\n` : '') }] }
   })
 
   await server.connect(new StdioServerTransport())

@@ -1,0 +1,24 @@
+# Copy to .github/workflows/ai-visibility.yml in your site's repo.
+# Add your key under Settings → Secrets and variables → Actions → New repository secret: GEMINI_API_KEY
+name: AI visibility
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write   # commit .plugd/ history
+  issues: write     # open an issue when AI names you less often
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mdayan8/plugd@v1
+        with:
+          site: yourapp.com
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+          # openrouter-api-key: ${{ secrets.OPENROUTER_API_KEY }}   # for ChatGPT, Claude, Perplexity
+          max-cost: '1.00'

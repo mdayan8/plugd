@@ -1,0 +1,107 @@
+name: Plugd AI visibility tracker
+description: Ask ChatGPT, Claude, Gemini and Perplexity your buyer questions on a schedule, keep the answers in your repo, and open an issue when AI stops naming you.
+author: Plugd
+branding:
+  icon: trending-up
+  color: blue
+
+inputs:
+  site:
+    description: Site to track, e.g. yourapp.com
+    required: true
+  gemini-api-key:
+    description: Gemini API key (Google AI Studio). Google Search grounding needs billing on; the first 5,000 searches a month are free.
+    required: false
+    default: ''
+  openrouter-api-key:
+    description: OpenRouter key, for ChatGPT, Claude and Perplexity (and Gemini if no Gemini key is given).
+    required: false
+    default: ''
+  engines:
+    description: 'Comma-separated engines (gemini, chatgpt, claude, perplexity). Default: gemini with a Gemini key, else all four.'
+    required: false
+    default: ''
+  max-cost:
+    description: Stop starting new checks once this many US dollars are spent in a run.
+    required: false
+    default: '1.00'
+  questions:
+    description: Number of buyer questions written on the first run. After that the saved questions are reused.
+    required: false
+    default: '10'
+  dir:
+    description: Folder in your repo where questions and history are kept.
+    required: false
+    default: .plugd
+  commit:
+    description: 'Commit the updated history back to the repo (needs `contents: write`).'
+    required: false
+    default: 'true'
+  open-issue:
+    description: 'Open an issue when an engine clearly names you less often than last run (needs `issues: write`).'
+    required: false
+    default: 'true'
+  version:
+    description: getplugd version from npm.
+    required: false
+    default: 0.3.0
+
+outputs:
+  dropped:
+    description: '"true" when at least one engine clearly named you less often than the previous run.'
+    value: ${{ steps.report.outputs.dropped }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+
+    - name: Ask the AI engines
+      shell: bash
+      env:
+        GEMINI_API_KEY: ${{ inputs.gemini-api-key }}
+        OPENROUTER_API_KEY: ${{ inputs.openrouter-api-key }}
+        PLUGD_SITE: ${{ inputs.site }}
+        PLUGD_ENGINES: ${{ inputs.engines }}
+        PLUGD_MAX_COST: ${{ inputs.max-cost }}
+        PLUGD_QUESTIONS: ${{ inputs.questions }}
+        PLUGD_DIR: ${{ inputs.dir }}
+        PLUGD_VERSION: ${{ inputs.version }}
+      run: |
+        args=(track "$PLUGD_SITE" --yes --dir "$PLUGD_DIR" --max-cost "$PLUGD_MAX_COST" --questions "$PLUGD_QUESTIONS")
+        if [ -n "$PLUGD_ENGINES" ]; then args+=(--engines "$PLUGD_ENGINES"); fi
+        npx -y "getplugd@$PLUGD_VERSION" "${args[@]}"
+
+    - name: Write the report
+      id: report
+      shell: bash
+      env:
+        PLUGD_DIR: ${{ inputs.dir }}
+        PLUGD_VERSION: ${{ inputs.version }}
+      run: |
+        alert="$RUNNER_TEMP/plugd-alert.md"
+        npx -y "getplugd@$PLUGD_VERSION" report --dir "$PLUGD_DIR" --md "$PLUGD_DIR/REPORT.md" --alert "$alert"
+        cat "$PLUGD_DIR/REPORT.md" >> "$GITHUB_STEP_SUMMARY"
+        if [ -f "$alert" ]; then echo "dropped=true" >> "$GITHUB_OUTPUT"; else echo "dropped=false" >> "$GITHUB_OUTPUT"; fi
+
+    - name: Commit the history
+      if: inputs.commit == 'true'
+      shell: bash
+      env:
+        PLUGD_DIR: ${{ inputs.dir }}
+      run: |
+        git config user.name "plugd[bot]"
+        git config user.email "plugd-bot@users.noreply.github.com"
+        git add "$PLUGD_DIR"
+        if git diff --cached --quiet; then echo "No changes to commit."; exit 0; fi
+        git commit -m "plugd: AI visibility run $(date -u +%F)"
+        git push
+
+    - name: Open an issue if AI named you less often
+      if: inputs.open-issue == 'true' && steps.report.outputs.dropped == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh issue create --title "AI engines named you less often ($(date -u +%F))" --body-file "$RUNNER_TEMP/plugd-alert.md"

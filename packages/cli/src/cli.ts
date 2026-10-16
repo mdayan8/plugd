@@ -2,13 +2,12 @@
 import { writeFileSync } from 'node:fs'
 import { createInterface } from 'node:readline/promises'
 import { parseArgs, styleText } from 'node:util'
-import { gemini, generateQuestions, openRouter, type Engine } from '@getplugd/engines'
-import { aliasesFor, audit, ENGINES, estimateAiCost, readSite, type EngineId } from '@plugd/audit'
+import { audit, ENGINES, estimateAiCost, type EngineId } from '@plugd/audit'
 import { planMarkdown, reportMarkdown } from './markdown'
 import { runMcp } from './mcp'
-import { reportLines, reportMarkdown as trackMarkdown } from './report'
+import { alertMarkdown, reportLines, reportMarkdown as trackMarkdown } from './report'
 import { printReport } from './terminal'
-import { estimateTrack, loadConfig, loadHistory, saveConfig, track } from './track'
+import { enginesFromEnv, ensureConfig, estimateTrack, loadConfig, loadHistory, track } from './track'
 
 const HELP = `plugd: get your brand recommended by AI
 
@@ -34,6 +33,7 @@ Options
 Tracking (track / report)
   --dir <folder>                Where history is kept (default .plugd). Commit it to keep a trend.
   --max-cost <usd>              Stop starting new checks once this much is spent
+  --alert <file>                (report) Write <file> only if a run clearly dropped; for CI alerts
   --engines gemini,chatgpt,...  Default: gemini if GEMINI_API_KEY is set, else all four via OpenRouter
   --questions / --question      Only used on the first run; questions are then frozen in .plugd/plugd.json
 
@@ -51,7 +51,7 @@ async function main() {
     options: {
       json: { type: 'boolean' }, md: { type: 'string' }, 'no-ai': { type: 'boolean' }, questions: { type: 'string' },
       question: { type: 'string', multiple: true }, engines: { type: 'string' }, brand: { type: 'string' }, pages: { type: 'string' },
-      dir: { type: 'string' }, 'max-cost': { type: 'string' },
+      dir: { type: 'string' }, 'max-cost': { type: 'string' }, alert: { type: 'string' },
       'allow-local': { type: 'boolean' }, yes: { type: 'boolean', short: 'y' }, help: { type: 'boolean', short: 'h' }, version: { type: 'boolean', short: 'v' },
     },
   })
@@ -102,18 +102,6 @@ async function main() {
 
 type Flags = Record<string, string | boolean | string[] | undefined>
 
-function buildEngines(list: string | undefined): Engine[] {
-  const gk = process.env.GEMINI_API_KEY, ok = process.env.OPENROUTER_API_KEY
-  if (!gk && !ok) err('Tracking needs an API key: export GEMINI_API_KEY=... or OPENROUTER_API_KEY=sk-or-... (see --help)')
-  const ids = (list?.split(',').map(x => x.trim()).filter(Boolean) ?? (gk ? ['gemini'] : Object.keys(ENGINES))) as EngineId[]
-  return ids.map(id => {
-    if (!(id in ENGINES)) err(`Unknown engine "${id}". Use: ${Object.keys(ENGINES).join(', ')}`)
-    if (id === 'gemini' && gk) return gemini({ apiKey: gk, model: process.env.GEMINI_MODEL })
-    if (!ok) err(`${ENGINES[id].label} needs OPENROUTER_API_KEY (GEMINI_API_KEY only covers Gemini).`)
-    return openRouter({ apiKey: ok!, engine: id })
-  })
-}
-
 async function confirm(q: string): Promise<boolean> {
   if (!process.stdin.isTTY) return false
   const rl = createInterface({ input: process.stdin, output: process.stderr })
@@ -126,30 +114,13 @@ async function runTrack(target: string | undefined, v: Flags) {
   const dir = String(v.dir ?? '.plugd')
   const maxCost = v['max-cost'] === undefined ? undefined : Number(v['max-cost'])
   if (maxCost !== undefined && !(maxCost > 0)) err('--max-cost must be a positive number of US dollars, e.g. --max-cost 0.50')
-  const engines = buildEngines(v.engines as string | undefined)
+  const engines = (() => { try { return enginesFromEnv(v.engines as string | undefined) } catch (e) { return err((e as Error).message) } })()
   const log = (m: string) => process.stderr.write(styleText('gray', `  ◇ ${m}\n`))
-
-  let cfg = loadConfig(dir)
-  if (cfg && target && !new URL(/^https?:/.test(target) ? target : `https://${target}`).hostname.endsWith(cfg.domain)) {
-    err(`${dir} already tracks ${cfg.domain}. Use --dir to track another site.`)
-  }
-  if (!cfg) {
-    if (!target) err('Which site? e.g. npx getplugd track yourapp.com')
-    log(`Reading ${target}`)
-    const { site, context } = await readSite(target!, { allowLocal: Boolean(v['allow-local']), brand: v.brand as string | undefined }).catch(e => err((e as Error).message))
-    let questions = (v.question as string[] | undefined) ?? []
-    if (!questions.length) {
-      const n = Math.min(30, Math.max(1, Number(v.questions ?? 10) || 10))
-      log(`Writing ${n} buyer questions with ${engines[0]!.label}`)
-      questions = (await generateQuestions(engines[0]!, site, context, n).catch(e => err((e as Error).message))).questions
-      if (!questions.length) err('Could not write buyer questions for this site. Pass your own with --question.')
-    }
-    cfg = { site: site.url, domain: site.domain, brand: site.brand, aliases: aliasesFor(site), questions, createdAt: new Date().toISOString() }
-    saveConfig(dir, cfg)
-    log(`Saved ${questions.length} questions to ${dir}/plugd.json. They stay fixed so runs compare; edit the file to change them.`)
-  } else if (v.question || v.questions) {
-    log(`Using the ${cfg.questions.length} questions in ${dir}/plugd.json (--question/--questions only apply on the first run).`)
-  }
+  const { config: cfg, created } = await ensureConfig({
+    dir, target, engine: engines[0]!, questions: v.question as string[] | undefined, count: Number(v.questions ?? 10) || 10,
+    brand: v.brand as string | undefined, allowLocal: Boolean(v['allow-local']), log,
+  }).catch(e => err((e as Error).message))
+  if (!created && (v.question || v.questions)) log(`Using the ${cfg.questions.length} questions in ${dir}/plugd.json (--question/--questions only apply on the first run).`)
 
   const est = estimateTrack(engines.map(e => e.id), cfg.questions.length)
   const cap = maxCost !== undefined ? ` (stops at $${maxCost.toFixed(2)})` : ''
@@ -179,6 +150,9 @@ function runReport(v: Flags) {
   if (!cfg) err(`Nothing tracked in ${dir} yet. Run: npx getplugd track yourapp.com`)
   const records = loadHistory(dir)
   if (v.md) writeFileSync(String(v.md), trackMarkdown(cfg!, records))
+  // For CI: write an alert only when visibility clearly dropped, so "file exists" means "open an issue".
+  const alert = v.alert ? alertMarkdown(cfg!, records) : null
+  if (alert) writeFileSync(String(v.alert), alert)
   if (v.json) return console.log(JSON.stringify({ config: cfg, history: records }, null, 2))
   console.log('\n' + reportLines(cfg!, records).map(l => `  ${l}`).join('\n') + '\n')
   if (v.md) console.log(styleText('gray', `  Report written to ${v.md}\n`))

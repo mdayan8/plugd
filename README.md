@@ -4,7 +4,8 @@
 
 - **CLI:** `npx getplugd audit yourapp.com` checks AI crawler access, readability and structured data, then asks the AI engines real buyer questions (with your own OpenRouter key).
 - **Tracking:** `npx getplugd track yourapp.com` asks the same buyer questions each run and keeps the answers in `.plugd/`; `npx getplugd report` shows the trend with honest error ranges. Free with your own Gemini or OpenRouter key.
-- **MCP server:** `npx getplugd mcp` gives Claude Code, Codex, Cursor and OpenCode two tools, `audit_site` and `get_fix_plan`.
+- **GitHub Action:** `uses: mdayan8/plugd@v1` runs the tracking weekly in your repo with your key, commits the history, and opens an issue when AI names you less often. See [examples/ai-visibility.yml](examples/ai-visibility.yml).
+- **MCP server:** `npx getplugd mcp` gives Claude Code, Codex, Cursor and OpenCode four tools: `audit_site`, `get_fix_plan`, `track_questions` and `get_history`.
 - **Skills:** AEO, GEO and SEO playbooks your agent can follow, built from vendor docs and published research, with sources.
 - **Prompts:** the system prompts behind the audit, readable and reusable.
 
@@ -58,6 +59,7 @@ Every claim in a skill links to its source. Where the evidence is weak or contes
 packages/engines/ engine providers: Gemini (Google Search) and ChatGPT/Claude/Perplexity via OpenRouter, plus brand extraction
 packages/audit/   audit engine (TypeScript library)
 packages/cli/     `getplugd` CLI + stdio MCP server, published to npm
+action.yml        GitHub Action (weekly tracking in your repo); example workflow in examples/
 skills/           Agent Skills (SKILL.md) for Claude Code, Codex, Cursor
 prompts/          system prompts used by the audit and the skills
 research/         sourced evidence brief the skills are built on

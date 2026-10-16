@@ -78,16 +78,40 @@ npx getplugd report --md report.md
   - Bills are between you and the provider. Your keys go straight to them; Plugd never sees them.
 - **Reading the numbers:** every rate comes with a 95% range, and a run is only marked ↑ or ↓ when the ranges don't overlap. With 10 questions, a swing from 2 to 3 mentions is noise. Positions inside answers aren't reported, because they reshuffle almost every run.
 
-Run it weekly from cron, or let [Plugd Cloud](https://plugd.getplugd.workers.dev) run it for you with no keys and a benchmark of your market.
+### Run it every week in GitHub Actions
+
+Copy [`examples/ai-visibility.yml`](https://github.com/mdayan8/plugd/blob/main/examples/ai-visibility.yml) into `.github/workflows/` and add `GEMINI_API_KEY` as a repository secret:
+
+```yaml
+on:
+  schedule: [{ cron: '0 6 * * 1' }]   # Mondays
+permissions: { contents: write, issues: write }
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mdayan8/plugd@v1
+        with:
+          site: yourapp.com
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+          max-cost: '1.00'
+```
+
+Each run commits the history and a `REPORT.md` to `.plugd/`, shows the report in the job summary, and opens an issue when an engine names you clearly less often than the run before. Inputs: `site`, `gemini-api-key`, `openrouter-api-key`, `engines`, `max-cost`, `questions`, `dir`, `commit`, `open-issue`.
+
+Or run it from cron, or let [Plugd Cloud](https://plugd.getplugd.workers.dev) run it for you with no keys and a benchmark of your market.
 
 ## Use it from your coding agent (MCP)
 
-`npx getplugd mcp` runs a local MCP server with two tools:
+`npx getplugd mcp` runs a local MCP server with four tools:
 
 | Tool | What it does |
 |---|---|
 | `audit_site` | Runs the audit (with AI checks if `OPENROUTER_API_KEY` is set) and returns the report |
 | `get_fix_plan` | Returns the ranked fix plan with artifacts, ready to apply in your repo |
+| `track_questions` | Asks the engines your saved buyer questions and adds the answers to `.plugd/` history (spends your key's credits, capped by `max_cost`, default $0.50) |
+| `get_history` | Returns the trend from `.plugd/`, with who's named instead, the sources used and any drop alert (free) |
 
 **Claude Code**
 ```bash
